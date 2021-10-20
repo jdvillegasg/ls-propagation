@@ -5,7 +5,8 @@ import matplotlib as mpl
 from pylab import cm
 from scipy import stats     # Gaussian distribution
 import scipy.io as sio
-#from TICC_solver import TICC
+import irfDataHandling as irfdh
+import pandas as pd
 from scipy import interpolate
 import re
 
@@ -73,17 +74,26 @@ method_calc_sta_regions = 'fullrcorr' # 'cluspdp'
 thr_sta_regions = 0.55 # Has different meaning depending the computation method used
 
 #Control what to plot
-activate_plot = [False,  # Rx Powers
-                 False,  # Path Loss
-                 False,  # Gauss and BGF Sh KS fit
-                 False, # QQ plot Sh BGoF vs Sh Gauss
-                 False, # K Factor in trajectory and buildings
+activate_plot = [True,  # Rx Powers
+                 True,  # Path Loss
+                 True,  # Gauss and BGF Sh KS fit
+                 True, # QQ plot Sh BGoF vs Sh Gauss
+                 True, # K Factor in trajectory and buildings
                  False, # CDF Delay spreads KS BGoF
                  False, # CDF Delay avgs KS BGoF
                  False, # Delay Spreads all meas this route vs no. sample
-                 True,  # Buildings and routes
-                 False # Stationary regions
+                 False,  # Buildings and routes
+                 True # Stationary regions
                  ]
+
+test_obj = LargeScaleProp.LsPropPlots({'RXP': True,
+                                       'PL': True,
+                                       'Sh-Fit': True,
+                                       'Sh-QQ': True,
+                                       'KFactor-Route': True,
+                                       'Stat-Regs': True})
+
+print(test_obj.list_figs)
 
 def right_idx_format(i1, i2):
     # Not allowed this option
@@ -575,3 +585,6 @@ labels = []
 # fig3.legend(lines, labels=['$\mathcal{N}$', 'BGF'], loc='upper right', mode="expand", ncol=3, fontsize=20)
 
 plt.show()
+
+file = irfdh.get_rx_power(r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\VariablesToSave\Measurement Campaigns\Analysis measures\IRFs\IRF_MXW_9.csv')
+print(file.head())

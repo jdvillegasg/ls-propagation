@@ -7,13 +7,12 @@ from pathlib import Path
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from sklearn.linear_model import LinearRegression
-from fastkml import kml
 import pyproj as proj
 from scipy.spatial.distance import cdist
-from scipy import stats
+from scipy import stats, interpolate
 from sklearn.cluster import  KMeans
-from TICC_solver import TICC
 from scipy import optimize
 
 class LargeScaleProp:
@@ -193,33 +192,6 @@ class LargeScaleProp:
         sh = sh[np.argsort(idx_r_sorted)]
 
         return fit_reg, reg_indp_var, reg_dep_var, sh
-
-    def get_coordinates_from_kml(self, kml_path, offset=None):
-        """Code inspired from fastkml documentation. Example of usage:
-        kml_file = path-to-kml-file
-        tx = obj_handle.get_coordinates_from_kml
-        """
-
-        # self.kml_files_dict
-
-        tx = {}
-
-        with open(kml_path) as myfile:
-            doc = myfile.read()
-
-        k = kml.KML()
-        k.from_string(doc)
-
-        features = list(k.features())
-        objs_with_info = list(features[0].features())
-
-        tx['pts_order'] = [int(p.name.split()[1]) for p in objs_with_info]
-        input_lon = np.asarray([p.geometry.x for p in objs_with_info])
-        input_lat = np.asarray([p.geometry.y for p in objs_with_info])
-
-        tmp = self.convert_DDDMS_to_planar(4326, 31370, input_lon, input_lat, offset)
-        tx.update(tmp)
-        return tx
 
     def prune_trajectories(self, tx, BS, gps_file_num):
         """Prunes the trajectories followed by the TX. Under the assumption that some of the GPS data
@@ -495,20 +467,6 @@ class LargeScaleProp:
 
         print(km_pred)
 
-    def use_ticc_to_separate(self, fname, win=2, n_clus=2, lambda_param=1e-6, beta=200, maxIters=100):
-        # rxp_np = np.array([k for ds in rxp.values() for k in ds.tolist()])
-
-        ticc = TICC(window_size=win, number_of_clusters=n_clus, lambda_parameter=lambda_param,
-                    beta=beta, maxIters=maxIters, threshold=2e-5,
-                    write_out_file=False, prefix_string="output_folder/", num_proc=1)
-        (cluster_assignment, cluster_MRFs) = ticc.fit(input_file=fname)
-
-        print(cluster_assignment)
-
-
-
-        #np.savetxt('Results.txt', cluster_assignment, fmt='%d', delimiter=',')
-
     def utility_get_gps_file_path(self, bs, file_number, cnt):
         if bs == 'MKT':
             if file_number[cnt] > 9:
@@ -545,3 +503,70 @@ class LargeScaleProp:
 
         r = optimize.minimize(err, x0=np.r_[seg, py_init], method='Nelder-Mead')
         return func(r.x)
+
+    class LsPropPlots:
+        def __init__(self, dict_what_plt, init_col=3, init_rows=3, bs_plt='MXW'):
+            #BS
+            self.bs_plt = bs_plt
+
+            # Says what to plot
+            self.dict_what_plt = dict_what_plt
+
+            # Define number of subplots in a figure
+            self.subplt_mat = {'MKT': {'rows': 3, 'cols': 3}, 'MXW': {'rows': 3, 'cols': 3}}
+            self.subplt_leftover = {'MKT': [], 'MXW': {'rows': [2], 'cols': [1, 2]}}
+
+            self.list_figs = {}
+            for name_sbplt, en_subplt in self.dict_what_plt.items():
+                if en_subplt:
+                    self.list_figs[name_sbplt] = plt.subplots(self.subplt_mat[bs_plt]['rows'], self.subplt_mat[bs_plt]['cols'])
+                    if self.subplt_leftover[bs_plt]:
+                        for i in self.subplt_leftover[bs_plt]['rows']:
+                            for j in self.subplt_leftover[bs_plt]['cols']:
+                                self.list_figs[name_sbplt][1][i, j].set_visible(False) # Choosing the last figure axes subplot i,j
+            
+        def right_idx_format(self, i1, i2):
+            # Not allowed this option
+            # if (i1 =='') & (i2 ==''):
+            #    ri =
+
+            if (i1 == '') & (i2 != ''):
+                ri = i2
+            if (i1 != '') & (i2 == ''):
+                ri = i1
+            if (i1 != '') & (i2 != ''):
+                ri = (i1, i2)
+
+            return ri
+
+        def plot_fig_rxpowers(self, plt_idx_row, plt_idx_col, sample_number, rx_p):
+            ri = self.right_idx_format(plt_idx_row, plt_idx_col)
+
+            n_x_ticks = 3
+            dyn_range_x = sample_number.shape[0]
+
+            n_y_ticks = 3
+            dyn_range_y = np.max(rx_p) - np.min(rx_p)
+
+            N = 1000
+            cumsum = np.cumsum(np.insert(rx_p, 0, 0))
+            rxp_smooth = (cumsum[N:] - cumsum[:-N]) / float(N)
+            rxp_smooth2 = np.r_[rxp_smooth, rx_p[-(N - 1):]]
+
+            self.list_figs['RXP'][1][ri].xaxis.set_major_locator(mpl.ticker.MultipleLocator(np.floor(dyn_range_x / n_x_ticks)))
+
+            self.list_figs['RXP'][1][ri].set_xlim(1, rx_p.shape[0])
+            self.list_figs['RXP'][1][ri].set_ylim(np.min(rx_p), np.max(rx_p))
+
+            self.list_figs['RXP'][1][ri].yaxis.set_major_locator(mpl.ticker.MultipleLocator(np.floor(dyn_range_y / n_y_ticks)))
+            self.list_figs['RXP'][1][ri].set_xlabel('Snapshot number', fontsize=30)
+            self.list_figs['RXP'][1][ri].set_ylabel('$P_{RX}$ [dBm]', fontsize=30)
+
+            self.list_figs['RXP'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
+            self.list_figs['RXP'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
+            self.list_figs['RXP'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
+            self.list_figs['RXP'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
+
+            self.list_figs['RXP'][1][ri].plot(sample_number, rx_p, ls='--', linewidth=1.2, alpha=0.7, color='b')
+            self.list_figs['RXP'][1][ri].plot(np.arange(np.floor(N / 2), np.floor(N / 2) + rxp_smooth.shape[0]), rxp_smooth, ls='-.',
+                               linewidth=3, color='r')
