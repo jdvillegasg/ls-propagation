@@ -339,56 +339,6 @@ class LargeScaleProp:
 
         return txc
 
-    def plot_buildings_and_this_traj(self, tx, bs, ax=None, idx=None):
-        """Example of usage:
-        tx, info = obj_handle.get_coordinates_from_file(file_path, obj_handle.offset_scenario)
-        tx = obj_handle.prune_trajectories(tx, bs, file_number)
-        tx_interpolated = obj_handle.interpolate_coordinates(tx, rxp.shape[0], 30.2)
-        obj_handle.plot_buildings_and_this_traj(tx_interpolated, bs)
-
-        plt.show() must be called after calling this function, so the function has effect
-         """
-        if ax is not None:
-            for line_i in self.buildings:
-                ax.plot(line_i[0:2], line_i[2:4], color='black', linestyle='dashed')
-
-            if idx is not None:
-                ax.plot(tx[idx, 0], tx[idx, 1], ls='', color='red', marker='o', markersize=7)
-                ax.plot(self.rx[bs]['x'], self.rx[bs]['y'], marker='x', color='red', markersize=20)
-            else:
-                ax.plot(tx[:, 0], tx[:, 1], color='red', marker='o', markersize=7)
-                ax.plot(tx[0, 0], tx[0, 1], color='blue', marker='X', markersize=20)
-               # ax.plot(tx[500, 0], tx[500, 1], color='green', marker='o', markersize=5)
-
-                ax.plot(self.rx[bs]['x'], self.rx[bs]['y'], marker='X', color='red', markersize=20)
-
-            ax.set_xticks([])
-            ax.set_yticks([])
-            #ax.set_xlabel('x [m]', fontsize=30)
-            #ax.set_ylabel('y [m]', fontsize=30)
-
-        else:
-            plt.figure()
-            for line_i in self.buildings:
-                plt.plot(line_i[0:2], line_i[2:4], color='blue', linestyle='dashed')
-
-            if idx is not None:
-                plt.plot(tx[idx, 0], tx[idx, 1], color='red', marker='o', markersize=7)
-                plt.plot(self.rx[bs]['x'], self.rx[bs]['y'], marker='X', color='red', markersize=20)
-            else:
-                plt.plot(tx[:, 0], tx[:, 1], color='red', marker='o', markersize=7)
-                ax.plot(tx[0, 0], tx[0, 1], color='blue', marker='X', markersize=20)
-                #ax.plot(tx[500, 0], tx[500, 1], color='green', marker='o', markersize=5)
-                plt.plot(self.rx[bs]['x'], self.rx[bs]['y'], marker='X', color='red', markersize=20)
-
-            plt.set_xticks([])
-            plt.set_yticks([])
-            #plt.set_xlabel('x [m]', fontsize=30)
-            #plt.set_ylabel('y [m]', fontsize=30)
-
-
-        #plt.show()
-
     def get_snapshot_partition_LoS_NLoS_from_delay(self, ISIS_ADDR, maxNumWaves, tx, rx):
         """Partition the snapshots based on the MPC delays. Only available for measurements
         for which the delays as computed from SAGE (or related) are available."""
@@ -512,392 +462,431 @@ class LargeScaleProp:
         r = optimize.minimize(err, x0=np.r_[seg, py_init], method='Nelder-Mead')
         return func(r.x)
 
-    class LsPropPlots:
-        def __init__(self, dict_what_plt, init_col=3, init_rows=3, bs_plt='MXW'):
-            """
+class LsPropPlots(LargeScaleProp):
+    def __init__(self, dict_what_plt, init_col=3, init_rows=3, bs_plt='MXW'):
+        """
 
-            :param dict_what_plt: dictionary containing the fields to plot:
-                                  -RXP
-                                  -PL
-                                  -Sh-Fit
-                                  -Sh-QQ
-                                  -KFactor-Route
-                                  -Stat-Regs
-            :param init_col:
-            :param init_rows:
-            :param bs_plt:
-            """
+        :param dict_what_plt: dictionary containing the fields to plot:
+                              -RXP
+                              -PL
+                              -Sh-Fit
+                              -Sh-QQ
+                              -KFactor-Route
+                              -Stat-Regs
+        :param init_col:
+        :param init_rows:
+        :param bs_plt:
+        """
 
-            #BS
-            self.bs_plt = bs_plt
+        #BS
+        self.bs_plt = bs_plt
 
-            # Says what to plot
-            self.dict_what_plt = dict_what_plt
+        # Says what to plot
+        self.dict_what_plt = dict_what_plt
 
-            # Define number of subplots in a figure
-            self.subplts_matrix = {'MKT': {'rows': 3, 'cols': 3}, 'MXW': {'rows': 3, 'cols': 3}}
-            self.idx_subplt_leftover = {'MKT': [], 'MXW': {'rows': [2], 'cols': [1, 2]}}
+        # Define number of subplots in a figure
+        self.subplts_matrix = {'MKT': {'rows': 3, 'cols': 3}, 'MXW': {'rows': 3, 'cols': 3}}
+        self.idx_subplt_leftover = {'MKT': [], 'MXW': {'rows': [2], 'cols': [1, 2]}}
 
-            # Assign to each route a place in the figure plot
-            self.subplots_mapp = {'MXW': {'ParkingLot10': (0, 1), 'ParkingLot9': (0, 0),
-                                          'MarieCurie6': (0, 2), 'MarieCurie7': (1, 0), 'MarieCurie8': (1, 1),
-                                          'StBarbe1': (1, 2), 'StBarbe2': (2, 0)},
-                                  'MKT': {'ParkingLot1': (0, 0), 'ParkingLot2': (0, 1), 'ParkingLot3': (0, 2),
-                                          'ParkingLot4': (1, 0), 'MarieCurie5': (1, 1), 'MarieCurie6': (1, 2),
-                                          'MarieCurie7': (2, 0), 'MarieCurie8': (2, 1), 'StBarbe9': (2, 2)}}
+        # Assign to each route a place in the figure plot
+        self.subplots_mapp = {'MXW': {'ParkingLot10': (0, 1), 'ParkingLot9': (0, 0),
+                                      'MarieCurie6': (0, 2), 'MarieCurie7': (1, 0), 'MarieCurie8': (1, 1),
+                                      'StBarbe1': (1, 2), 'StBarbe2': (2, 0)},
+                              'MKT': {'ParkingLot1': (0, 0), 'ParkingLot2': (0, 1), 'ParkingLot3': (0, 2),
+                                      'ParkingLot4': (1, 0), 'MarieCurie5': (1, 1), 'MarieCurie6': (1, 2),
+                                      'MarieCurie7': (2, 0), 'MarieCurie8': (2, 1), 'StBarbe9': (2, 2)}}
 
-            # Create the figures and subplot axes for the plots we want to do
-            self.list_figs = {}
-            for name_sbplt, en_subplt in self.dict_what_plt.items():
-                if en_subplt:
-                    self.list_figs[name_sbplt] = plt.subplots(self.subplts_matrix[bs_plt]['rows'], self.subplts_matrix[bs_plt]['cols'])
-                    if self.idx_subplt_leftover[bs_plt]:
-                        for i in self.idx_subplt_leftover[bs_plt]['rows']:
-                            for j in self.idx_subplt_leftover[bs_plt]['cols']:
-                                self.list_figs[name_sbplt][1][i, j].set_visible(False) # Choosing the last figure axes subplot i,j
-            
-        def right_idx_format(self, i1, i2):
-            """
-            Indexes for subplots based based on i1, i2. Both i1, i2 can be empty
-            :param i1:
-            :param i2:
-            :return:
-            """
-            # Not allowed this option
-            # if (i1 =='') & (i2 ==''):
-            #    ri =
+        # Create the figures and subplot axes for the plots we want to do
+        self.list_figs = {}
+        for name_sbplt, en_subplt in self.dict_what_plt.items():
+            if en_subplt:
+                self.list_figs[name_sbplt] = plt.subplots(self.subplts_matrix[bs_plt]['rows'], self.subplts_matrix[bs_plt]['cols'])
+                if self.idx_subplt_leftover[bs_plt]:
+                    for i in self.idx_subplt_leftover[bs_plt]['rows']:
+                        for j in self.idx_subplt_leftover[bs_plt]['cols']:
+                            self.list_figs[name_sbplt][1][i, j].set_visible(False) # Choosing the last figure axes subplot i,j
 
-            if (i1 == '') & (i2 != ''):
-                ri = i2
-            if (i1 != '') & (i2 == ''):
-                ri = i1
-            if (i1 != '') & (i2 != ''):
-                ri = (i1, i2)
+    def right_idx_format(self, i1, i2):
+        """
+        Indexes for subplots based based on i1, i2. Both i1, i2 can be empty
+        :param i1:
+        :param i2:
+        :return:
+        """
+        # Not allowed this option
+        # if (i1 =='') & (i2 ==''):
+        #    ri =
 
-            return ri
+        if (i1 == '') & (i2 != ''):
+            ri = i2
+        if (i1 != '') & (i2 == ''):
+            ri = i1
+        if (i1 != '') & (i2 != ''):
+            ri = (i1, i2)
 
-        def plot_fig_rxpowers(self, plt_idx_row, plt_idx_col, sample_number, rx_p):
-            """
-            Plot the received power
-            :param plt_idx_row:
-            :param plt_idx_col:
-            :param sample_number:
-            :param rx_p: dictionary
-            :return:
-            """
-            ri = self.right_idx_format(plt_idx_row, plt_idx_col)
+        return ri
 
-            n_x_ticks = 3
-            dyn_range_x = sample_number.shape[0]
+    def plot_fig_rxpowers(self, plt_idx_row, plt_idx_col, sample_number, rx_p):
+        """
+        Plot the received power
+        :param plt_idx_row:
+        :param plt_idx_col:
+        :param sample_number:
+        :param rx_p: dictionary
+        :return:
+        """
+        ri = self.right_idx_format(plt_idx_row, plt_idx_col)
 
-            n_y_ticks = 3
-            dyn_range_y = np.max(rx_p) - np.min(rx_p)
+        n_x_ticks = 3
+        dyn_range_x = sample_number.shape[0]
 
-            N = 1000
-            cumsum = np.cumsum(np.insert(rx_p, 0, 0))
-            rxp_smooth = (cumsum[N:] - cumsum[:-N]) / float(N)
-            rxp_smooth2 = np.r_[rxp_smooth, rx_p[-(N - 1):]]
+        n_y_ticks = 3
+        dyn_range_y = np.max(rx_p) - np.min(rx_p)
 
-            self.list_figs['RXP'][1][ri].xaxis.set_major_locator(mpl.ticker.MultipleLocator(np.floor(dyn_range_x / n_x_ticks)))
+        N = 1000
+        cumsum = np.cumsum(np.insert(rx_p, 0, 0))
+        rxp_smooth = (cumsum[N:] - cumsum[:-N]) / float(N)
+        rxp_smooth2 = np.r_[rxp_smooth, rx_p[-(N - 1):]]
 
-            self.list_figs['RXP'][1][ri].set_xlim(1, rx_p.shape[0])
-            self.list_figs['RXP'][1][ri].set_ylim(np.min(rx_p), np.max(rx_p))
+        self.list_figs['RXP'][1][ri].xaxis.set_major_locator(mpl.ticker.MultipleLocator(np.floor(dyn_range_x / n_x_ticks)))
 
-            self.list_figs['RXP'][1][ri].yaxis.set_major_locator(mpl.ticker.MultipleLocator(np.floor(dyn_range_y / n_y_ticks)))
-            self.list_figs['RXP'][1][ri].set_xlabel('Snapshot number', fontsize=30)
-            self.list_figs['RXP'][1][ri].set_ylabel('$P_{RX}$ [dBm]', fontsize=30)
+        self.list_figs['RXP'][1][ri].set_xlim(1, rx_p.shape[0])
+        self.list_figs['RXP'][1][ri].set_ylim(np.min(rx_p), np.max(rx_p))
 
-            self.list_figs['RXP'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['RXP'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['RXP'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
-            self.list_figs['RXP'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
+        self.list_figs['RXP'][1][ri].yaxis.set_major_locator(mpl.ticker.MultipleLocator(np.floor(dyn_range_y / n_y_ticks)))
+        self.list_figs['RXP'][1][ri].set_xlabel('Snapshot number', fontsize=30)
+        self.list_figs['RXP'][1][ri].set_ylabel('$P_{RX}$ [dBm]', fontsize=30)
 
-            self.list_figs['RXP'][1][ri].plot(sample_number, rx_p, ls='--', linewidth=1.2, alpha=0.7, color='b')
-            self.list_figs['RXP'][1][ri].plot(np.arange(np.floor(N / 2), np.floor(N / 2) + rxp_smooth.shape[0]), rxp_smooth, ls='-.',
-                               linewidth=3, color='r')
+        self.list_figs['RXP'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['RXP'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['RXP'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
+        self.list_figs['RXP'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
 
-        def plot_fig_pathloss(self, plt_idx_row, plt_idx_col, regressor, predictor, reg, FI):
-            """
-            Plot the path loss
-            :param plt_idx_row:
-            :param plt_idx_col:
-            :param regressor:
-            :param predictor:
-            :param reg:
-            :param FI: floating intercept (True) or closed-in intercept (False)
-            :return:
-            """
-            ri = self.right_idx_format(plt_idx_row, plt_idx_col)
+        self.list_figs['RXP'][1][ri].plot(sample_number, rx_p, ls='--', linewidth=1.2, alpha=0.7, color='b')
+        self.list_figs['RXP'][1][ri].plot(np.arange(np.floor(N / 2), np.floor(N / 2) + rxp_smooth.shape[0]), rxp_smooth, ls='-.',
+                           linewidth=3, color='r')
 
-            d_tx_rx = pow(10, regressor / 10)
+    def plot_fig_pathloss(self, plt_idx_row, plt_idx_col, regressor, predictor, reg, FI):
+        """
+        Plot the path loss
+        :param plt_idx_row:
+        :param plt_idx_col:
+        :param regressor:
+        :param predictor:
+        :param reg:
+        :param FI: floating intercept (True) or closed-in intercept (False)
+        :return:
+        """
+        ri = self.right_idx_format(plt_idx_row, plt_idx_col)
 
-            # aux = np.arange(start=1, stop=np.max(d_tx_rx)+1, step=1)
-            aux = np.arange(start=np.min(d_tx_rx), stop=np.max(d_tx_rx) + 1, step=1)
-            reg_indp_var_interp = aux.reshape(aux.shape[0], 1)
+        d_tx_rx = pow(10, regressor / 10)
 
-            if FI:
-                pred_L = reg.predict(10 * np.log10(reg_indp_var_interp))
-                str_FI = 'FI'
+        # aux = np.arange(start=1, stop=np.max(d_tx_rx)+1, step=1)
+        aux = np.arange(start=np.min(d_tx_rx), stop=np.max(d_tx_rx) + 1, step=1)
+        reg_indp_var_interp = aux.reshape(aux.shape[0], 1)
+
+        if FI:
+            pred_L = reg.predict(10 * np.log10(reg_indp_var_interp))
+            str_FI = 'FI'
+        else:
+            pred_L = reg.predict(10 * np.log10(reg_indp_var_interp)) + 10 * np.log10(
+                np.square(4 * np.pi / super().lmd))
+            str_FI = 'CI'
+
+        n_x_ticks = 3
+        dyn_range_x = np.max(d_tx_rx) - 1
+        # ax_pklot2[ri].xaxis.set_major_locator(mpl.ticker.MultipleLocator(np.floor(dyn_range_x / n_x_ticks)))
+
+        n_y_ticks = 3
+        dyn_range_y = np.abs(np.max(pred_L) - np.min(pred_L))
+        # ax_pklot2[ri].yaxis.set_major_locator(mpl.ticker.MultipleLocator(np.floor(dyn_range_y/n_y_ticks)))
+
+        self.list_figs['PL'][1][ri].set_xlabel('Transceiver distance [m]', fontsize=30)
+        self.list_figs['PL'][1][ri].set_ylabel('L [dB]', fontsize=30)
+
+        self.list_figs['PL'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['PL'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['PL'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
+        self.list_figs['PL'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
+
+        self.list_figs['PL'][1][ri].plot(d_tx_rx, predictor, color='b', ls='', marker='x', markersize=5)
+        self.list_figs['PL'][1][ri].plot(reg_indp_var_interp, pred_L, color='k', linewidth=4)
+        # ax_pklot2[ri].semilogx(d_tx_rx, predictor, color='b', ls='', marker='x', markersize=3)
+        # ax_pklot2[ri].semilogx(reg_indp_var_interp, pred_L, color='k', linewidth=5)
+
+        # ax_pklot2[ri].legend(labels=['Path Loss', 'n=' + str(np.around(reg.coef_[0], 2))],
+        # bbox_to_anchor=(1, 0), loc=4, frameon=False, fontsize=16)
+
+        ploss_exp = np.around(reg.coef_[0], 2)
+        print('Path Loss Exponent' + str_FI + ': ', ploss_exp)
+
+    def plot_fig_distribution_fits(self, plt_idx_row, plt_idx_col, signal, alpha, title, list_of_dists_reduced):
+        """Fit a gaussian distribution and BGoF to the shadowing signal and plot it"""
+        ri = self.right_idx_format(plt_idx_row, plt_idx_col)
+
+        # Set up axes for plotting
+        self.list_figs['Sh-Fit'][1][ri].set_xlabel(title, fontsize=30)
+        self.list_figs['Sh-Fit'][1][ri].set_ylabel('Density', fontsize=30)
+
+        self.list_figs['Sh-Fit'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['Sh-Fit'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['Sh-Fit'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
+        self.list_figs['Sh-Fit'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
+
+        # Fit the shadowing
+        norm = getattr(stats, 'norm')
+        mean_g, std_g = norm.fit(signal)
+        parameters = norm.fit(signal)
+        x = np.linspace(np.min(signal), np.max(signal), 1000)
+        pdf_gaussian = norm.pdf(x, mean_g, std_g)
+
+        # Kolmogorov-Smirnov test
+        ks_test = stats.kstest(signal, 'norm', args=parameters)
+        critical_value = stats.ksone.ppf(1 - alpha / 2, signal.shape[0])
+
+        # BGF
+        fitted_distr = super().best_gof_distr(signal, list_of_dists_reduced)
+        best_gof_dist = getattr(stats, fitted_distr[0][0])
+        pdf_best_gof = best_gof_dist.pdf(x, *fitted_distr[0][3])
+
+        self.list_figs['Sh-Fit'][1][ri].hist(signal, density=True)
+        self.list_figs['Sh-Fit'][1][ri].plot(x, pdf_gaussian, color='k', linewidth=1.5)
+        self.list_figs['Sh-Fit'][1][ri].plot(x, pdf_best_gof, color='r', linewidth=1.5)
+        # ax_pklot[ri].legend(labels=['$\mathcal{N}$', 'BGF'], bbox_to_anchor=(0, 1), loc=2, frameon=False, fontsize=20)
+
+        print('Sh. Gauss. KS fit statistic:', ks_test)
+        print('Sh. Gauss. KS fit critical value:', critical_value)
+
+        print('Sh. gauss mean: ', mean_g)
+        print('Sh. gauss std: ', std_g)
+
+        print(title + ' BGoF KS fit statistic:', fitted_distr[0][1])
+        print(title + ' BGoF KS fit critical value:', critical_value)
+
+        print(title + ' BGoF KS fit distr. name:', fitted_distr[0][0])
+        print(title + ' BGoF KS fit distr. parameters:', fitted_distr[0][3])
+
+        return mean_g, std_g, fitted_distr
+
+    def plot_qq_fig(self, plt_idx_row, plt_idx_col, sh):
+        ri = self.right_idx_format(plt_idx_row, plt_idx_col)
+
+        self.list_figs['Sh-QQ'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['Sh-QQ'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['Sh-QQ'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
+        self.list_figs['Sh-QQ'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
+
+        stats.probplot(sh, dist='norm', plot=self.list_figs['Sh-Fit'][1][ri])
+
+    def plot_k_factor_chosen_quantiles(self, plt_idx_row, plt_idx_col, tx, idxs, bs):
+        ri = self.right_idx_format(plt_idx_row, plt_idx_col)
+
+        self.list_figs['KFactor-Route'][1][ri].xaxis.set_major_locator(mpl.ticker.MultipleLocator(50))
+        self.list_figs['KFactor-Route'][1][ri].yaxis.set_major_locator(mpl.ticker.MultipleLocator(50))
+
+        self.list_figs['KFactor-Route'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['KFactor-Route'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['KFactor-Route'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
+        self.list_figs['KFactor-Route'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
+
+        super().plot_buildings_and_this_traj(tx, bs, ax=self.list_figs['KFactor-Route'][1][ri], idx=idxs)
+
+    def plot_delay_spreads(self, plt_idx_row, plt_idx_col, alpha, cnt, bs, method, thr_level, route_name, list_of_dists_reduced):
+        """Find out the BGoF distribution for the delay spreads"""
+        ri = self.right_idx_format(plt_idx_row, plt_idx_col)
+
+        self.list_figs['CDF-Del-Spreads'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['CDF-Del-Spreads'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['CDF-Del-Spreads'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
+        self.list_figs['CDF-Del-Spreads'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
+
+        dict_var_delay = {'MXW': {'StBarbe': [0, 1], 'MarieCurie': [2, 3, 4], 'ParkingLot': [5, 6]},
+                          'MKT': {'ParkingLot': [0, 1, 2, 3], 'MarieCurie': [4, 5, 6, 7], 'StBarbe': [8]}}
+
+        if bs == 'MKT':
+            data = sio.loadmat(
+                r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\var_delay_statistics_sta_regs_' + method + '_thr_' + str(
+                    thr_level) + '_MKT.mat')
+        elif bs == 'MXW':
+            data = sio.loadmat(
+                r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\var_delay_statistics_sta_regs_' + method + '_thr_' + str(
+                    thr_level) + '_MXW.mat')
+
+        ds = data['delay_spreads'][dict_var_delay[bs][route_name]]
+
+        ds_avg = np.mean(ds[cnt][0], axis=1) * 1e9
+        critical_value = stats.ksone.ppf(1 - alpha / 2, ds_avg.shape[0])
+        fitted_distr_ds = super().best_gof_distr(ds_avg, list_of_dists_reduced)
+
+        x_ds = np.linspace(np.min(ds_avg), np.max(ds_avg), 1000)
+        best_gof_dist_ds = getattr(stats, fitted_distr_ds[0][0])
+        cdf_best_gof_ds = best_gof_dist_ds.cdf(x_ds, *fitted_distr_ds[0][3])
+
+        self.list_figs['CDF-Del-Spreads'][1][ri].hist(ds_avg, 50, density=True, cumulative=True, color='b', histtype='step')
+        # self.list_figs['Sh-Fit'][1][ri].hist(ds_avg, 50, density=True, color='b')
+        self.list_figs['CDF-Del-Spreads'][1][ri].plot(x_ds, cdf_best_gof_ds, color='b', linewidth=1.5, ls='--', label=str(cnt))
+        self.list_figs['CDF-Del-Spreads'][1][ri].set_xlabel('Delay spreads [$\mu$s]')
+        self.list_figs['CDF-Del-Spreads'][1][ri].set_ylabel('CDF')
+        self.list_figs['CDF-Del-Spreads'][1][ri].legend(labels=['Fit: ' + fitted_distr_ds[0][0], 'Empirical'],
+                            bbox_to_anchor=(0, 1), loc=2, frameon=False, fontsize=16)
+
+        median_ds = np.quantile(ds_avg, 0.5)
+        std_ds = np.std(ds_avg)
+
+        print('Median Del. Spread Route ' + route_name + str(cnt) + ' : ' + str(median_ds))
+        print('Std Dev Del. Spread Route ' + route_name + str(cnt) + ' : ' + str(std_ds))
+
+        print('Del. Spreads KS fit statistic:', fitted_distr_ds[0][1])
+        print('Del. Spreads KS fit critical value:', critical_value)
+
+        print('Del. Spreads BGoF disitr. name: ', fitted_distr_ds[0][0])
+        print('Del. Spreads KS fit distr. parameters:', fitted_distr_ds[0][3])
+
+        return median_ds, std_ds, ds_avg
+
+    def plot_delay_avgs(self, plt_idx_row, plt_idx_col, alpha, cnt, bs, method, thr_level, route_name, list_of_dists_reduced):
+        """Find out the BGoF distribution for the delay avgs"""
+        ri = self.right_idx_format(plt_idx_row, plt_idx_col)
+
+        self.list_figs['CDF-Del-Avg'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['CDF-Del-Avg'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['CDF-Del-Avg'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
+        self.list_figs['CDF-Del-Avg'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
+
+        dict_var_delay = {'MXW': {'StBarbe': [0, 1], 'MarieCurie': [2, 3, 4], 'ParkingLot': [5, 6]},
+                          'MKT': {'ParkingLot': [0, 1, 2, 3], 'MarieCurie': [4, 5, 6, 7], 'StBarbe': [8]}}
+
+        if bs == 'MKT':
+            data = sio.loadmat(
+                r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\var_delay_statistics_sta_regs_' + method + '_thr_' + str(
+                    thr_level) + '_MKT.mat')
+        elif bs == 'MXW':
+            data = sio.loadmat(
+                r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\var_delay_statistics_sta_regs_' + method + '_thr_' + str(
+                    thr_level) + '_MXW.mat')
+
+        dm = data['delay_avgs'][dict_var_delay[bs][route_name]]
+
+        dm_avg = np.mean(dm[cnt][0], axis=1) * 1e9
+        critical_value = stats.ksone.ppf(1 - alpha / 2, dm_avg.shape[0])
+        fitted_distr_dm = super().best_gof_distr(dm_avg, list_of_dists_reduced)
+
+        x_dm = np.linspace(np.min(dm_avg), np.max(dm_avg), 1000)
+        best_gof_dist_dm = getattr(stats, fitted_distr_dm[0][0])
+        cdf_best_gof_dm = best_gof_dist_dm.cdf(x_dm, *fitted_distr_dm[0][3])
+
+        self.list_figs['CDF-Del-Avg'][1][ri].hist(dm_avg, 50, density=True, cumulative=True, color='b', histtype='step')
+        # self.list_figs['Sh-Fit'][1][ri].hist(dm_avg, 50, density=True, color='b')
+        self.list_figs['CDF-Del-Avg'][1][ri].plot(x_dm, cdf_best_gof_dm, color='b', linewidth=1.5, ls='--', label=str(cnt))
+        self.list_figs['CDF-Del-Avg'][1][ri].set_xlabel('Delay averages [$\mu$s]')
+        self.list_figs['CDF-Del-Avg'][1][ri].set_ylabel('PDF')
+        self.list_figs['CDF-Del-Avg'][1][ri].legend(labels=['Fit: ' + fitted_distr_dm[0][0], 'Empirical'],
+                            bbox_to_anchor=(0, 1), loc=2, frameon=False, fontsize=16)
+
+        median_dm = np.quantile(dm_avg, 0.5)
+        std_dm = np.std(dm_avg)
+
+        print('Median Del. Avgs Route ' + route_name + str(cnt) + ' : ' + str(median_dm))
+        print('Std Dev Del. Avgs Route ' + route_name + str(cnt) + ' : ' + str(std_dm))
+
+        print('Del. Avgs KS fit statistic:', fitted_distr_dm[0][1])
+        print('Del. Avgs KS fit critical value:', critical_value)
+
+        print('Del. Avgs BGoF disitr. name: ', fitted_distr_dm[0][0])
+        print('Del. Avgs KS fit distr. parameters:', fitted_distr_dm[0][3])
+
+    def plot_delay_spreads_route(self, ds):
+        """
+        FOR TESTING PURPOSES
+        :param ds:
+        :return:
+        """
+        ri = 1
+        self.list_figs['Sh-Fit'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['Sh-Fit'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
+        self.list_figs['Sh-Fit'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
+        self.list_figs['Sh-Fit'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
+
+        self.list_figs['Sh-Fit'][1][ri].plot(ds, marker='x', markersize=5)
+
+    def plot_routes_and_buildings(self, plt_idx_row, plt_idx_col, tx, bs, buildings, rx):
+        """Wrapper to plot_buildings_and_this_traj"""
+        ri = self.right_idx_format(plt_idx_row, plt_idx_col)
+        self.plot_buildings_and_this_traj(tx, bs, buildings, rx, ax=self.list_figs['Scenario'][1][ri])
+
+    def plot_buildings_and_this_traj(self, tx, bs, buildings, rx, ax=None, idx=None):
+        if ax is not None:
+            for line_i in buildings:
+                ax.plot(line_i[0:2], line_i[2:4], color='black', linestyle='dashed')
+
+            if idx is not None:
+                ax.plot(tx[idx, 0], tx[idx, 1], ls='', color='red', marker='o', markersize=7)
+                ax.plot(rx[bs]['x'], rx[bs]['y'], marker='x', color='red', markersize=20)
             else:
-                pred_L = reg.predict(10 * np.log10(reg_indp_var_interp)) + 10 * np.log10(
-                    np.square(4 * np.pi / super.lmd))
-                str_FI = 'CI'
-
-            n_x_ticks = 3
-            dyn_range_x = np.max(d_tx_rx) - 1
-            # ax_pklot2[ri].xaxis.set_major_locator(mpl.ticker.MultipleLocator(np.floor(dyn_range_x / n_x_ticks)))
-
-            n_y_ticks = 3
-            dyn_range_y = np.abs(np.max(pred_L) - np.min(pred_L))
-            # ax_pklot2[ri].yaxis.set_major_locator(mpl.ticker.MultipleLocator(np.floor(dyn_range_y/n_y_ticks)))
-
-            self.list_figs['PL'][1][ri].set_xlabel('Transceiver distance [m]', fontsize=30)
-            self.list_figs['PL'][1][ri].set_ylabel('L [dB]', fontsize=30)
-
-            self.list_figs['PL'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['PL'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['PL'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
-            self.list_figs['PL'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
-
-            self.list_figs['PL'][1][ri].plot(d_tx_rx, predictor, color='b', ls='', marker='x', markersize=5)
-            self.list_figs['PL'][1][ri].plot(reg_indp_var_interp, pred_L, color='k', linewidth=4)
-            # ax_pklot2[ri].semilogx(d_tx_rx, predictor, color='b', ls='', marker='x', markersize=3)
-            # ax_pklot2[ri].semilogx(reg_indp_var_interp, pred_L, color='k', linewidth=5)
-
-            # ax_pklot2[ri].legend(labels=['Path Loss', 'n=' + str(np.around(reg.coef_[0], 2))],
-            # bbox_to_anchor=(1, 0), loc=4, frameon=False, fontsize=16)
-
-            ploss_exp = np.around(reg.coef_[0], 2)
-            print('Path Loss Exponent' + str_FI + ': ', ploss_exp)
-
-        def plot_fig_distribution_fits(self, plt_idx_row, plt_idx_col, signal, alpha, title, list_of_dists_reduced):
-            """Fit a gaussian distribution and BGoF to the shadowing signal and plot it"""
-            ri = self.right_idx_format(plt_idx_row, plt_idx_col)
-
-            # Set up axes for plotting
-            self.list_figs['Sh-Fit'][1][ri].set_xlabel(title, fontsize=30)
-            self.list_figs['Sh-Fit'][1][ri].set_ylabel('Density', fontsize=30)
-
-            self.list_figs['Sh-Fit'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['Sh-Fit'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['Sh-Fit'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
-            self.list_figs['Sh-Fit'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
-
-            # Fit the shadowing
-            norm = getattr(stats, 'norm')
-            mean_g, std_g = norm.fit(signal)
-            parameters = norm.fit(signal)
-            x = np.linspace(np.min(signal), np.max(signal), 1000)
-            pdf_gaussian = norm.pdf(x, mean_g, std_g)
-
-            # Kolmogorov-Smirnov test
-            ks_test = stats.kstest(signal, 'norm', args=parameters)
-            critical_value = stats.ksone.ppf(1 - alpha / 2, signal.shape[0])
-
-            # BGF
-            fitted_distr = super.best_gof_distr(signal, list_of_dists_reduced)
-            best_gof_dist = getattr(stats, fitted_distr[0][0])
-            pdf_best_gof = best_gof_dist.pdf(x, *fitted_distr[0][3])
-
-            self.list_figs['Sh-Fit'][1][ri].hist(signal, density=True)
-            self.list_figs['Sh-Fit'][1][ri].plot(x, pdf_gaussian, color='k', linewidth=1.5)
-            self.list_figs['Sh-Fit'][1][ri].plot(x, pdf_best_gof, color='r', linewidth=1.5)
-            # ax_pklot[ri].legend(labels=['$\mathcal{N}$', 'BGF'], bbox_to_anchor=(0, 1), loc=2, frameon=False, fontsize=20)
-
-            print('Sh. Gauss. KS fit statistic:', ks_test)
-            print('Sh. Gauss. KS fit critical value:', critical_value)
-
-            print('Sh. gauss mean: ', mean_g)
-            print('Sh. gauss std: ', std_g)
-
-            print(title + ' BGoF KS fit statistic:', fitted_distr[0][1])
-            print(title + ' BGoF KS fit critical value:', critical_value)
-
-            print(title + ' BGoF KS fit distr. name:', fitted_distr[0][0])
-            print(title + ' BGoF KS fit distr. parameters:', fitted_distr[0][3])
-
-            return mean_g, std_g, fitted_distr
-
-        def plot_qq_fig(self, plt_idx_row, plt_idx_col, sh):
-            ri = self.right_idx_format(plt_idx_row, plt_idx_col)
-
-            self.list_figs['Sh-QQ'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['Sh-QQ'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['Sh-QQ'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
-            self.list_figs['Sh-QQ'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
-
-            stats.probplot(sh, dist='norm', plot=self.list_figs['Sh-Fit'][1][ri])
-
-        def plot_k_factor_chosen_quantiles(self, plt_idx_row, plt_idx_col, tx, idxs, bs):
-            ri = self.right_idx_format(plt_idx_row, plt_idx_col)
-
-            self.list_figs['KFactor-Route'][1][ri].xaxis.set_major_locator(mpl.ticker.MultipleLocator(50))
-            self.list_figs['KFactor-Route'][1][ri].yaxis.set_major_locator(mpl.ticker.MultipleLocator(50))
-
-            self.list_figs['KFactor-Route'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['KFactor-Route'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['KFactor-Route'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
-            self.list_figs['KFactor-Route'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
-
-            super.plot_buildings_and_this_traj(tx, bs, ax=self.list_figs['KFactor-Route'][1][ri], idx=idxs)
-
-        def plot_delay_spreads(self, plt_idx_row, plt_idx_col, alpha, cnt, bs, method, thr_level, route_name, list_of_dists_reduced):
-            """Find out the BGoF distribution for the delay spreads"""
-            ri = self.right_idx_format(plt_idx_row, plt_idx_col)
-
-            self.list_figs['CDF-Del-Spreads'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['CDF-Del-Spreads'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['CDF-Del-Spreads'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
-            self.list_figs['CDF-Del-Spreads'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
-
-            dict_var_delay = {'MXW': {'StBarbe': [0, 1], 'MarieCurie': [2, 3, 4], 'ParkingLot': [5, 6]},
-                              'MKT': {'ParkingLot': [0, 1, 2, 3], 'MarieCurie': [4, 5, 6, 7], 'StBarbe': [8]}}
-
-            if bs == 'MKT':
-                data = sio.loadmat(
-                    r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\var_delay_statistics_sta_regs_' + method + '_thr_' + str(
-                        thr_level) + '_MKT.mat')
-            elif bs == 'MXW':
-                data = sio.loadmat(
-                    r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\var_delay_statistics_sta_regs_' + method + '_thr_' + str(
-                        thr_level) + '_MXW.mat')
-
-            ds = data['delay_spreads'][dict_var_delay[bs][route_name]]
-
-            ds_avg = np.mean(ds[cnt][0], axis=1) * 1e9
-            critical_value = stats.ksone.ppf(1 - alpha / 2, ds_avg.shape[0])
-            fitted_distr_ds = super.best_gof_distr(ds_avg, list_of_dists_reduced)
-
-            x_ds = np.linspace(np.min(ds_avg), np.max(ds_avg), 1000)
-            best_gof_dist_ds = getattr(stats, fitted_distr_ds[0][0])
-            cdf_best_gof_ds = best_gof_dist_ds.cdf(x_ds, *fitted_distr_ds[0][3])
-
-            self.list_figs['CDF-Del-Spreads'][1][ri].hist(ds_avg, 50, density=True, cumulative=True, color='b', histtype='step')
-            # self.list_figs['Sh-Fit'][1][ri].hist(ds_avg, 50, density=True, color='b')
-            self.list_figs['CDF-Del-Spreads'][1][ri].plot(x_ds, cdf_best_gof_ds, color='b', linewidth=1.5, ls='--', label=str(cnt))
-            self.list_figs['CDF-Del-Spreads'][1][ri].set_xlabel('Delay spreads [$\mu$s]')
-            self.list_figs['CDF-Del-Spreads'][1][ri].set_ylabel('CDF')
-            self.list_figs['CDF-Del-Spreads'][1][ri].legend(labels=['Fit: ' + fitted_distr_ds[0][0], 'Empirical'],
-                                bbox_to_anchor=(0, 1), loc=2, frameon=False, fontsize=16)
-
-            median_ds = np.quantile(ds_avg, 0.5)
-            std_ds = np.std(ds_avg)
-
-            print('Median Del. Spread Route ' + route_name + str(cnt) + ' : ' + str(median_ds))
-            print('Std Dev Del. Spread Route ' + route_name + str(cnt) + ' : ' + str(std_ds))
-
-            print('Del. Spreads KS fit statistic:', fitted_distr_ds[0][1])
-            print('Del. Spreads KS fit critical value:', critical_value)
-
-            print('Del. Spreads BGoF disitr. name: ', fitted_distr_ds[0][0])
-            print('Del. Spreads KS fit distr. parameters:', fitted_distr_ds[0][3])
-
-            return median_ds, std_ds, ds_avg
-
-        def plot_delay_avgs(self, plt_idx_row, plt_idx_col, alpha, cnt, bs, method, thr_level, route_name, list_of_dists_reduced):
-            """Find out the BGoF distribution for the delay avgs"""
-            ri = self.right_idx_format(plt_idx_row, plt_idx_col)
-
-            self.list_figs['CDF-Del-Avg'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['CDF-Del-Avg'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['CDF-Del-Avg'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
-            self.list_figs['CDF-Del-Avg'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
-
-            dict_var_delay = {'MXW': {'StBarbe': [0, 1], 'MarieCurie': [2, 3, 4], 'ParkingLot': [5, 6]},
-                              'MKT': {'ParkingLot': [0, 1, 2, 3], 'MarieCurie': [4, 5, 6, 7], 'StBarbe': [8]}}
-
-            if bs == 'MKT':
-                data = sio.loadmat(
-                    r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\var_delay_statistics_sta_regs_' + method + '_thr_' + str(
-                        thr_level) + '_MKT.mat')
-            elif bs == 'MXW':
-                data = sio.loadmat(
-                    r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\var_delay_statistics_sta_regs_' + method + '_thr_' + str(
-                        thr_level) + '_MXW.mat')
-
-            dm = data['delay_avgs'][dict_var_delay[bs][route_name]]
-
-            dm_avg = np.mean(dm[cnt][0], axis=1) * 1e9
-            critical_value = stats.ksone.ppf(1 - alpha / 2, dm_avg.shape[0])
-            fitted_distr_dm = super.best_gof_distr(dm_avg, list_of_dists_reduced)
-
-            x_dm = np.linspace(np.min(dm_avg), np.max(dm_avg), 1000)
-            best_gof_dist_dm = getattr(stats, fitted_distr_dm[0][0])
-            cdf_best_gof_dm = best_gof_dist_dm.cdf(x_dm, *fitted_distr_dm[0][3])
-
-            self.list_figs['CDF-Del-Avg'][1][ri].hist(dm_avg, 50, density=True, cumulative=True, color='b', histtype='step')
-            # self.list_figs['Sh-Fit'][1][ri].hist(dm_avg, 50, density=True, color='b')
-            self.list_figs['CDF-Del-Avg'][1][ri].plot(x_dm, cdf_best_gof_dm, color='b', linewidth=1.5, ls='--', label=str(cnt))
-            self.list_figs['CDF-Del-Avg'][1][ri].set_xlabel('Delay averages [$\mu$s]')
-            self.list_figs['CDF-Del-Avg'][1][ri].set_ylabel('PDF')
-            self.list_figs['CDF-Del-Avg'][1][ri].legend(labels=['Fit: ' + fitted_distr_dm[0][0], 'Empirical'],
-                                bbox_to_anchor=(0, 1), loc=2, frameon=False, fontsize=16)
-
-            median_dm = np.quantile(dm_avg, 0.5)
-            std_dm = np.std(dm_avg)
-
-            print('Median Del. Avgs Route ' + route_name + str(cnt) + ' : ' + str(median_dm))
-            print('Std Dev Del. Avgs Route ' + route_name + str(cnt) + ' : ' + str(std_dm))
-
-            print('Del. Avgs KS fit statistic:', fitted_distr_dm[0][1])
-            print('Del. Avgs KS fit critical value:', critical_value)
-
-            print('Del. Avgs BGoF disitr. name: ', fitted_distr_dm[0][0])
-            print('Del. Avgs KS fit distr. parameters:', fitted_distr_dm[0][3])
-
-        def plot_delay_spreads_route(self, ds):
-            """
-            FOR TESTING PURPOSES
-            :param ds:
-            :return:
-            """
-            ri = 1
-            self.list_figs['Sh-Fit'][1][ri].xaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['Sh-Fit'][1][ri].xaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', top='on')
-            self.list_figs['Sh-Fit'][1][ri].yaxis.set_tick_params(which='minor', size=10, width=1.5, direction='in', right='on')
-            self.list_figs['Sh-Fit'][1][ri].yaxis.set_tick_params(which='major', size=10, width=1.5, direction='in', right='on')
-
-            self.list_figs['Sh-Fit'][1][ri].plot(ds, marker='x', markersize=5)
-
-        def plot_routes_and_buildings(self, plt_idx_row, plt_idx_col, tx, bs):
-            """Wrapper to plot_buildings_and_this_traj"""
-            ri = self.right_idx_format(plt_idx_row, plt_idx_col)
-            super.plot_buildings_and_this_traj(tx, bs, ax=self.list_figs['Scenario'][1][ri])
-
-        def plot_stationary_regions(self, plt_idx_row, plt_idx_col, tx, bs, code_route, dir_route_sta_regions):
-            """Plot stationary regions"""
-
-            ri = self.right_idx_format(plt_idx_row, plt_idx_col)
-
-            temp = re.compile("([a-zA-Z]+)([0-9]+)")
-            fn = temp.match(code_route).groups()
-            fn = fn[1]
-
-            if bs == 'MKT':
-                data = sio.loadmat(
-                    r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\VariablesToSave\Measurement Campaigns\Analysis measures\Stationary Regions\\' + dir_route_sta_regions + '\sta_reg_MKT_' + fn + '.mat')
-            elif bs == 'MXW':
-                data = sio.loadmat(
-                    r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\VariablesToSave\Measurement Campaigns\Analysis measures\Stationary Regions\\' + dir_route_sta_regions + '\sta_reg_MXW_' + fn + '.mat')
-
-            color_reg = False
-
-            data = data['regs']
-            sz_regs = []
-            for reg_i in data:
-                reg2 = reg_i[0].flatten()
-
-                if color_reg:
-                    self.list_figs['Stat-Regs'][1][ri].plot(tx[reg2 - 1, 0], tx[reg2 - 1, 1], color='blue', marker='o', markersize='3')
-                else:
-                    self.list_figs['Stat-Regs'][1][ri].plot(tx[reg2 - 1, 0], tx[reg2 - 1, 1], color='red', marker='o', markersize='3')
-
-                color_reg ^= True
-
-                sz_regs.append(reg2.shape[0])
-
-            print('Average size of sta regions [wavs]: ', np.mean(sz_regs) / ((3e8 / 3.8e9) * (30.2 / 1.5)))
-
-            self.list_figs['Sh-Fit'][1][ri].set_xlabel('x [m]')
-            self.list_figs['Sh-Fit'][1][ri].set_ylabel('y [m]')
+                ax.plot(tx[:, 0], tx[:, 1], color='red', marker='o', markersize=7)
+                ax.plot(tx[0, 0], tx[0, 1], color='blue', marker='X', markersize=20)
+               # ax.plot(tx[500, 0], tx[500, 1], color='green', marker='o', markersize=5)
+
+                ax.plot(rx[bs]['x'], rx[bs]['y'], marker='X', color='red', markersize=20)
+
+            ax.set_xticks([])
+            ax.set_yticks([])
+            #ax.set_xlabel('x [m]', fontsize=30)
+            #ax.set_ylabel('y [m]', fontsize=30)
+
+        else:
+            plt.figure()
+            for line_i in buildings:
+                plt.plot(line_i[0:2], line_i[2:4], color='blue', linestyle='dashed')
+
+            if idx is not None:
+                plt.plot(tx[idx, 0], tx[idx, 1], color='red', marker='o', markersize=7)
+                plt.plot(rx[bs]['x'], rx[bs]['y'], marker='X', color='red', markersize=20)
+            else:
+                plt.plot(tx[:, 0], tx[:, 1], color='red', marker='o', markersize=7)
+                ax.plot(tx[0, 0], tx[0, 1], color='blue', marker='X', markersize=20)
+                #ax.plot(tx[500, 0], tx[500, 1], color='green', marker='o', markersize=5)
+                plt.plot(rx[bs]['x'], rx[bs]['y'], marker='X', color='red', markersize=20)
+
+            plt.set_xticks([])
+            plt.set_yticks([])
+            #plt.set_xlabel('x [m]', fontsize=30)
+            #plt.set_ylabel('y [m]', fontsize=30)
+
+    def plot_stationary_regions(self, plt_idx_row, plt_idx_col, tx, bs, code_route, dir_route_sta_regions):
+        """Plot stationary regions"""
+
+        ri = self.right_idx_format(plt_idx_row, plt_idx_col)
+
+        temp = re.compile("([a-zA-Z]+)([0-9]+)")
+        fn = temp.match(code_route).groups()
+        fn = fn[1]
+
+        if bs == 'MKT':
+            data = sio.loadmat(
+                r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\VariablesToSave\Measurement Campaigns\Analysis measures\Stationary Regions\\' + dir_route_sta_regions + '\sta_reg_MKT_' + fn + '.mat')
+        elif bs == 'MXW':
+            data = sio.loadmat(
+                r'C:\Users\julia\OneDrive - UCL\Pièces jointes\MATLAB\VariablesToSave\Measurement Campaigns\Analysis measures\Stationary Regions\\' + dir_route_sta_regions + '\sta_reg_MXW_' + fn + '.mat')
+
+        color_reg = False
+
+        data = data['regs']
+        sz_regs = []
+        for reg_i in data:
+            reg2 = reg_i[0].flatten()
+
+            if color_reg:
+                self.list_figs['Stat-Regs'][1][ri].plot(tx[reg2 - 1, 0], tx[reg2 - 1, 1], color='blue', marker='o', markersize='3')
+            else:
+                self.list_figs['Stat-Regs'][1][ri].plot(tx[reg2 - 1, 0], tx[reg2 - 1, 1], color='red', marker='o', markersize='3')
+
+            color_reg ^= True
+
+            sz_regs.append(reg2.shape[0])
+
+        print('Average size of sta regions [wavs]: ', np.mean(sz_regs) / ((3e8 / 3.8e9) * (30.2 / 1.5)))
+
+        self.list_figs['Sh-Fit'][1][ri].set_xlabel('x [m]')
+        self.list_figs['Sh-Fit'][1][ri].set_ylabel('y [m]')
 

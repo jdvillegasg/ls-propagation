@@ -1,4 +1,5 @@
 from LargeScaleProp import LargeScaleProp
+from LargeScaleProp import LsPropPlots
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -75,18 +76,18 @@ thr_sta_regions = 0.55 # Has different meaning depending the computation method 
 
 #Control what to plot
 activate_plots = {'RXP': True, # Rx Powers
-                  'PL': False, # Path Loss
-                  'Sh-Fit': False, # Gauss and BGF Sh KS fit
-                  'Sh-QQ': False, # QQ plot Sh BGoF vs Sh Gauss
+                  'PL': True, # Path Loss
+                  'Sh-Fit': True, # Gauss and BGF Sh KS fit
+                  'Sh-QQ': True, # QQ plot Sh BGoF vs Sh Gauss
                   'KFactor-Route': False, # K Factor in trajectory and buildings
                   'CDF-Del-Spreads': False, # CDF Delay spreads KS BGoF
                   'CDF-Del-Avg':False, # CDF Delay avgs KS BGoF
                   'Del-Spreads-AllRoute': False, # Delay Spreads all meas this route vs no. sample
                   'Scenario': True, # Buildings and routes
-                  'Stat-Regs': False # Stationary regions
+                  'Stat-Regs': True # Stationary regions
                   }
 
-plot_obj = LargeScaleProp.LsPropPlots(activate_plots)
+plot_obj = LsPropPlots(activate_plots)
 
 cnt_plot = 0
 Pt_dBm = 23
@@ -166,7 +167,7 @@ for route_name in routes_str:
         if activate_plots['CDF-Del-Avg']:
             plot_obj.plot_delay_avgs(plt_idx_row, plt_idx_col, 0.05, cnt_file_number, bs, method_calc_sta_regions, thr_sta_regions, route_name, list_of_dists_reduced)
         if activate_plots['Scenario']:
-            plot_obj.plot_routes_and_buildings(plt_idx_row, plt_idx_col, tx_interpolated, bs)
+            plot_obj.plot_routes_and_buildings(plt_idx_row, plt_idx_col, tx_interpolated, bs, obj_handle.buildings, obj_handle.rx)
         if activate_plots['Stat-Regs']:
             plot_obj.plot_stationary_regions(plt_idx_row, plt_idx_col, tx_interpolated, bs, a, dir_route_sta_regions)
 
